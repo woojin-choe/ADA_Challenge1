@@ -18,17 +18,34 @@ struct HomeView: View {
     
     @State private var text: String = ""
     
+    //원형 슬라이더 변수
     @State private var currentMinutes: Double = 45
+    let totalMinutes: Double = 180
+    let size: CGFloat = 300
+    let progressLineWidth: CGFloat = 10
+    let backgroundLineWidth: CGFloat = 2
+    private var progress: Double {
+        currentMinutes / totalMinutes
+    }
+    private func updateSlider(location: CGPoint) {
+        let center = CGPoint(x: size / 2, y: size / 2)
         
-        let totalMinutes: Double = 180
+        let dx = location.x - center.x
+        let dy = location.y - center.y
         
-        let size: CGFloat = 300
-        let progressLineWidth: CGFloat = 10
-        let backgroundLineWidth: CGFloat = 2
+        var angle = atan2(dy, dx) * 180 / .pi
         
-        private var progress: Double {
-            currentMinutes / totalMinutes
+        angle += 90
+        
+        if angle < 0 {
+            angle += 360
         }
+        
+        let newProgress = angle / 360
+        let rawMinutes = newProgress * totalMinutes
+        
+        currentMinutes = rawMinutes.rounded()
+    } //여기까지 원형 슬라이더 관련 
     
     var body: some View {
         VStack{
@@ -48,12 +65,12 @@ struct HomeView: View {
                     
                     if text==""{
                         Text("지금 어디에 있나요?")
-                           .font(.system(size: 18, weight: .regular))
+                            .font(.system(size: 18, weight: .regular))
                             .foregroundColor(.gray.opacity(0.7))
                     }
                     else{
                         Text(text)
-                           .font(.system(size: 18, weight: .regular))
+                            .font(.system(size: 18, weight: .regular))
                             .foregroundColor(.gray)
                     }
                     
@@ -72,52 +89,52 @@ struct HomeView: View {
             
             //원형 슬라이더
             ZStack {
-                        // 바깥 연한 원
-                        Circle()
-                            .stroke(Color.blue.opacity(0.12), lineWidth: backgroundLineWidth)
-                            .frame(width: size, height: size)
-                        
-                        // 12시, 3시, 6시, 9시 방향 눈금
-                        ForEach(0..<4) { i in
-                            Rectangle()
-                                .fill(Color.gray.opacity(0.22))
-                                .frame(width: 3, height: 18)
-                                .offset(y: -(size / 2) + 12)
-                                .rotationEffect(.degrees(Double(i) * 90))
-                        }
-                        
-                        // 진행 링
-                        Circle()
-                            .trim(from: 0, to: progress)
-                            .stroke(
-                                Color("DarkBlue"),
-                                style: StrokeStyle(
-                                    lineWidth: progressLineWidth,
-                                    lineCap: .round
-                                )
-                            )
-                            .frame(width: size - 8, height: size - 8)
-                            .rotationEffect(.degrees(-90))
-                        
-                        // 드래그 손잡이
-                        Circle()
-                            .fill(Color("DarkBlue"))
-                            .frame(width: 22, height: 22)
-                            .offset(y: -((size - 8) / 2))
-                            .rotationEffect(.degrees(progress * 360))
-                            .gesture(
-                                DragGesture(minimumDistance: 0)
-                                    .onChanged { drag in
-                                        updateSlider(location: drag.location)
-                                    }
-                            )
-                        
-                        // 가운데 텍스트
-                        Text("\(Int(currentMinutes))분")
-                            .font(.system(size: 56, weight: .bold))
-                            .foregroundColor(Color("DarkBlue"))
-                    }
+                // 바깥 연한 원
+                Circle()
+                    .stroke(Color.blue.opacity(0.12), lineWidth: backgroundLineWidth)
                     .frame(width: size, height: size)
+                
+                // 12시, 3시, 6시, 9시 방향 눈금
+                ForEach(0..<4) { i in
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.22))
+                        .frame(width: 3, height: 18)
+                        .offset(y: -(size / 2) + 12)
+                        .rotationEffect(.degrees(Double(i) * 90))
+                }
+                
+                // 진행 링
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(
+                        Color("DarkBlue"),
+                        style: StrokeStyle(
+                            lineWidth: progressLineWidth,
+                            lineCap: .round
+                        )
+                    )
+                    .frame(width: size - 8, height: size - 8)
+                    .rotationEffect(.degrees(-90))
+                
+                // 드래그 손잡이
+                Circle()
+                    .fill(Color("DarkBlue"))
+                    .frame(width: 22, height: 22)
+                    .offset(y: -((size - 8) / 2))
+                    .rotationEffect(.degrees(progress * 360))
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { drag in
+                                updateSlider(location: drag.location)
+                            }
+                    )
+                
+                // 가운데 텍스트
+                Text("\(Int(currentMinutes))분")
+                    .font(.system(size: 56, weight: .bold))
+                    .foregroundColor(Color("DarkBlue"))
+            }
+            .frame(width: size, height: size)
             
             
             Spacer().frame(height: 50)
@@ -126,8 +143,8 @@ struct HomeView: View {
                 .font(.title2)
                 .fontWeight(.medium)
                 .frame(maxWidth: .infinity, alignment: .center)
-                
-                
+            
+            
             
             Spacer().frame(height: 20)
             
@@ -186,25 +203,7 @@ struct HomeView: View {
         } //가장 큰 Vstack end
         .padding(.horizontal, 16)
     }
-    private func updateSlider(location: CGPoint) {
-            let center = CGPoint(x: size / 2, y: size / 2)
-            
-            let dx = location.x - center.x
-            let dy = location.y - center.y
-            
-            var angle = atan2(dy, dx) * 180 / .pi
-            
-            angle += 90
-            
-            if angle < 0 {
-                angle += 360
-            }
-            
-            let newProgress = angle / 360
-            let rawMinutes = newProgress * totalMinutes
-            
-            currentMinutes = rawMinutes.rounded()
-        }
+    
 }
 
 
