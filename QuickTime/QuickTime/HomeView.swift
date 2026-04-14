@@ -11,6 +11,10 @@ struct HomeView: View {
     //네비게이션에 쓸 변수
     @State private var navigateToRecommend = false
     
+    //카테고리 담을 변수 
+    @State var categories: [ActivityCategory] = []
+    
+    
     //선택된 카테고리 체크
     private var selectedCategories: [ActivityCategory] {
         var result: [ActivityCategory] = []
@@ -22,22 +26,33 @@ struct HomeView: View {
         return result
     }
     
-    @State var categories: [ActivityCategory] = [
-        .init(title: "운동", icon: "dumbbell.fill", isSelected: true),
-        .init(title: "산책", icon: "figure.walk", isSelected: true),
-        .init(title: "공부", icon: "book.closed", isSelected: false),
-        .init(title: "요가", icon: "figure.mind.and.body", isSelected: false),
-        .init(title: "휴식", icon: "cup.and.saucer", isSelected: false)
-    ]
+    
+
+    private func loadCategories() -> [ActivityCategory] {
+        guard let url = Bundle.main.url(forResource: "categories", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let result = try? JSONDecoder().decode([ActivityCategory].self, from: data)
+        else {
+            // JSON 파일이 없을 때 기본값
+            return [
+                .init(title: "운동", icon: "dumbbell.fill", isSelected: true),
+                .init(title: "산책", icon: "figure.walk", isSelected: true),
+                .init(title: "공부", icon: "book.closed", isSelected: false),
+                .init(title: "요가", icon: "figure.mind.and.body", isSelected: false),
+                .init(title: "휴식", icon: "cup.and.saucer", isSelected: false)
+            ]
+        }
+        return result
+    }
     
     @State private var text: String = ""
     
     //원형 슬라이더 변수
     @State private var currentMinutes: Double = 45 // 선택을 눌렀을 때 navigation으로 넘길 변수
     let totalMinutes: Double = 180
-    let size: CGFloat = 300
-    let progressLineWidth: CGFloat = 10
-    let backgroundLineWidth: CGFloat = 2
+    let size: Double = 300
+    let progressLineWidth: Double = 10
+    let backgroundLineWidth: Double = 2
     private var progress: Double {
         currentMinutes / totalMinutes
     }
@@ -71,7 +86,7 @@ struct HomeView: View {
                 Spacer().frame(height: 20)
                 
                 Button{
-                    //navigation 처리
+                    //.Sheet 해서 위치 찾는 걸로 해야함
                 }label: {
                     HStack(spacing: 12) {
                         Image(systemName: "magnifyingglass")
@@ -163,39 +178,39 @@ struct HomeView: View {
                 
                 Spacer().frame(height: 20)
                 
-                VStack{
-                    HStack{
-                        CategoryChipView(
-                            title:categories[0].title,
-                            icon: categories[0].icon,
-                            isSelected: $categories[0].isSelected
-                        )
-                        CategoryChipView(
-                            title:categories[1].title,
-                            icon: categories[1].icon,
-                            isSelected: $categories[1].isSelected
-                        )
-                        CategoryChipView(
-                            title:categories[2].title,
-                            icon: categories[2].icon,
-                            isSelected: $categories[2].isSelected
-                        )
-                    }//Hstack end
-                    HStack{
-                        CategoryChipView(
-                            title:categories[3].title,
-                            icon: categories[3].icon,
-                            isSelected: $categories[3].isSelected
-                        )
-                        CategoryChipView(
-                            title:categories[4].title,
-                            icon: categories[4].icon,
-                            isSelected: $categories[4].isSelected
-                        )
-                        
-                        
-                    } //Hstack end
-                } //Vstack end
+                if categories.count >= 5 {
+                    VStack{
+                        HStack{
+                            CategoryChipView(
+                                title:categories[0].title,
+                                icon: categories[0].icon,
+                                isSelected: $categories[0].isSelected
+                            )
+                            CategoryChipView(
+                                title:categories[1].title,
+                                icon: categories[1].icon,
+                                isSelected: $categories[1].isSelected
+                            )
+                            CategoryChipView(
+                                title:categories[2].title,
+                                icon: categories[2].icon,
+                                isSelected: $categories[2].isSelected
+                            )
+                        }//Hstack end
+                        HStack{
+                            CategoryChipView(
+                                title:categories[3].title,
+                                icon: categories[3].icon,
+                                isSelected: $categories[3].isSelected
+                            )
+                            CategoryChipView(
+                                title:categories[4].title,
+                                icon: categories[4].icon,
+                                isSelected: $categories[4].isSelected
+                            )
+                        } //Hstack end
+                    } //Vstack end
+                }
                 
                 Spacer()
                 
@@ -218,6 +233,9 @@ struct HomeView: View {
                 
             } //가장 큰 Vstack end
             .padding(.horizontal, 16)
+            .onAppear {
+                categories = loadCategories()
+            }
             .navigationDestination(isPresented: $navigateToRecommend) {
                 RecommendedView(selectedCategories: selectedCategories,minutes: Int(currentMinutes)
                 )

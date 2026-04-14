@@ -1,0 +1,7 @@
+[
+    { "title": "운동", "icon": "dumbbell.fill", "isSelected": true },
+    { "title": "산책", "icon": "figure.walk", "isSelected": true },
+    { "title": "공부", "icon": "book.closed", "isSelected": false },
+    { "title": "요가", "icon": "figure.mind.and.body", "isSelected": false },
+    { "title": "휴식", "icon": "cup.and.saucer", "isSelected": false }
+]

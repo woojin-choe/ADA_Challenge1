@@ -7,9 +7,13 @@
 
 import Foundation
 
-struct ActivityCategory: Identifiable {
+struct ActivityCategory: Identifiable, Codable {
     let id = UUID()
     let title: String
     let icon: String
     var isSelected: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case title, icon, isSelected
+    }
 }
