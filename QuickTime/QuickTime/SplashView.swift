@@ -9,10 +9,16 @@ import SwiftUI
 
 struct SplashView: View {
     var body: some View {
-        Spacer()
-        Image("Splash_Logo")
-        Spacer()
-        Image("Splash_Logo_Sub")
+        ZStack {
+            Color(UIColor.systemBackground)
+                .ignoresSafeArea()
+            VStack {
+                Spacer()
+                Image("Splash_Logo")
+                Spacer()
+                Image("Splash_Logo_Sub")
+            }
+        }
     }
 }
 

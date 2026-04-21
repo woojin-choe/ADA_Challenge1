@@ -6,70 +6,77 @@
 //
 
 import SwiftUI
+import MapKit
+import CoreLocation
 
 struct RecommendedView: View {
     let selectedCategories: [ActivityCategory]
     let minutes: Int
-    
-    // 전체 활동 데이터
-    let allActivities: [Activity] = [
-        .init(title: "풋살", description: "친구들과 함께 뛰어요", icon: "figure.soccer", requiredMinutes: 120, category: "운동"),
-        .init(title: "헬스", description: "근력을 키워보세요", icon: "dumbbell.fill", requiredMinutes: 60, category: "운동"),
-        .init(title: "줄넘기", description: "가볍게 땀 흘리기", icon: "figure.jumprope", requiredMinutes: 20, category: "운동"),
-        .init(title: "공원 산책", description: "가까운 공원을 걸어요", icon: "figure.walk", requiredMinutes: 30, category: "산책"),
-        .init(title: "한강 산책", description: "한강변을 따라 걸어요", icon: "figure.walk", requiredMinutes: 60, category: "산책"),
-        .init(title: "유튜브 강의", description: "짧게 하나만 들어요", icon: "play.rectangle", requiredMinutes: 15, category: "공부"),
-        .init(title: "독서", description: "책 한 챕터 읽기", icon: "book.closed", requiredMinutes: 30, category: "공부"),
-        .init(title: "스트레칭", description: "몸을 가볍게 풀어요", icon: "figure.mind.and.body", requiredMinutes: 15, category: "요가"),
-        .init(title: "명상", description: "마음을 비워보세요", icon: "figure.mind.and.body", requiredMinutes: 20, category: "요가"),
-        .init(title: "낮잠", description: "잠깐 눈을 붙여요", icon: "bed.double", requiredMinutes: 20, category: "휴식"),
-        .init(title: "카페 멍때리기", description: "커피 한 잔의 여유", icon: "cup.and.saucer", requiredMinutes: 30, category: "휴식"),
-    ]
-    
-    // 필터링
-    private var recommendedActivities: [Activity] {
-        let selectedTitles = selectedCategories.map { $0.title }
-        var result: [Activity] = []
-        for activity in allActivities {
-            if selectedTitles.contains(activity.category) && activity.requiredMinutes <= minutes {
-                result.append(activity)
-            }
+    var userLocation: CLLocationCoordinate2D? = nil
+
+    // MARK: - Activities Data
+    @State private var allActivities: [Activity] = []
+    @State private var selectedActivity: Activity?  // 탭한 카드 → 경로 sheet
+
+    private func loadActivities() -> [Activity] {
+        guard let url = Bundle.main.url(forResource: "activities", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let result = try? JSONDecoder().decode([Activity].self, from: data)
+        else {
+            return [
+                .init(id: UUID(), title: "풋살", description: "포항스틸야드 보조경기장에서 뛰어요", icon: "figure.soccer", requiredMinutes: 120, category: "운동", latitude: 36.0102, longitude: 129.3600),
+                .init(id: UUID(), title: "헬스", description: "포항시민체육관에서 근력을 키워요", icon: "dumbbell.fill", requiredMinutes: 60, category: "운동", latitude: 36.0188, longitude: 129.3480),
+                .init(id: UUID(), title: "환호공원 산책", description: "환호공원을 천천히 걸어요", icon: "figure.walk", requiredMinutes: 30, category: "산책", latitude: 36.0328, longitude: 129.3847),
+                .init(id: UUID(), title: "도서관 독서", description: "포항시립중앙도서관에서 책을 읽어요", icon: "book.closed", requiredMinutes: 30, category: "공부", latitude: 36.0317, longitude: 129.3652),
+                .init(id: UUID(), title: "스트레칭", description: "환호스포츠파크에서 몸을 풀어요", icon: "figure.mind.and.body", requiredMinutes: 15, category: "요가", latitude: 36.0328, longitude: 129.3847),
+                .init(id: UUID(), title: "영일대 카페", description: "영일대 카페거리에서 커피 한 잔 해요", icon: "cup.and.saucer", requiredMinutes: 30, category: "휴식", latitude: 36.0571, longitude: 129.3791)
+            ]
         }
         return result
     }
-    
+
+    // MARK: - 필터링
+    private var recommendedActivities: [Activity] {
+        let selectedTitles = selectedCategories.map { $0.title }
+        return allActivities.filter {
+            selectedTitles.contains($0.category) && $0.requiredMinutes <= minutes
+        }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                
-                // 지도 영역 placeholder
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.gray.opacity(0.15))
-                    .frame(height: 200)
-                    .overlay(
-                        Text("📍 지도")
-                            .foregroundColor(.gray)
-                    )
+
+                // MARK: 활동 위치 지도
+                activityMap
+                    .frame(height: 250)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 20)
-                
+                    .padding(.top, 12)
+                    .padding(.bottom, 16)
+
                 // 추천 타이틀
                 Text("당신을 위한 추천")
                     .font(.title2).bold()
-                    .foregroundColor(Color.darkBlue)
+                    .foregroundStyle(Color.darkBlue)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 12)
-                
+
                 // 카드 리스트
                 if recommendedActivities.isEmpty {
                     Text("시간 내에 할 수 있는 활동이 없어요 😢")
-                        .foregroundColor(.gray)
+                        .foregroundStyle(.gray)
                         .padding()
                 } else {
                     ForEach(recommendedActivities) { activity in
-                        ActivityCardView(activity: activity)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 12)
+                        Button {
+                            selectedActivity = activity
+                        } label: {
+                            ActivityCardView(activity: activity, userLocation: userLocation)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 12)
                     }
                 }
             }
@@ -77,12 +84,60 @@ struct RecommendedView: View {
         }
         .navigationTitle("추천 활동")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            allActivities = loadActivities()
+        }
+        .sheet(item: $selectedActivity) { activity in
+            if let loc = userLocation {
+                RouteMapView(activity: activity, userLocation: loc)
+            } else {
+                VStack(spacing: 12) {
+                    Image(systemName: "location.slash")
+                        .font(.system(size: 40))
+                        .foregroundStyle(.gray)
+                    Text("위치를 먼저 설정해주세요")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.gray)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+    }
+
+    // MARK: - 활동 위치 지도
+    @ViewBuilder
+    private var activityMap: some View {
+        let center: CLLocationCoordinate2D = recommendedActivities.first?.coordinate
+            ?? CLLocationCoordinate2D(latitude: 36.0190, longitude: 129.3435)
+
+        Map(initialPosition: .region(MKCoordinateRegion(
+            center: center,
+            span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
+        ))) {
+            // 활동 핀
+            ForEach(recommendedActivities) { activity in
+                Annotation(activity.title, coordinate: activity.coordinate) {
+                    Image(systemName: activity.icon)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(7)
+                        .background(Color.darkBlue)
+                        .clipShape(Circle())
+                        .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
+                }
+            }
+        }
+        .mapControls {
+            MapCompass()
+        }
     }
 }
 
+// MARK: - Activity Card View
 struct ActivityCardView: View {
     let activity: Activity
-    
+    var userLocation: CLLocationCoordinate2D? = nil
+
     var body: some View {
         HStack(spacing: 12) {
             RoundedRectangle(cornerRadius: 12)
@@ -91,25 +146,32 @@ struct ActivityCardView: View {
                 .overlay(
                     Image(systemName: activity.icon)
                         .font(.system(size: 30))
-                        .foregroundColor(Color.darkBlue)
+                        .foregroundStyle(Color.darkBlue)
                 )
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(activity.title)
                     .font(.system(size: 16, weight: .semibold))
                 Text(activity.description)
                     .font(.system(size: 14))
-                    .foregroundColor(.gray)
+                    .foregroundStyle(.gray)
                     .lineLimit(2)
-                Text("\(activity.requiredMinutes)분 소요")
-                    .font(.system(size: 12))
-                    .foregroundColor(Color.darkBlue)
+                HStack(spacing: 8) {
+                    Text("\(activity.requiredMinutes)분 소요")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.darkBlue)
+                    if let loc = userLocation {
+                        Text("·")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.gray)
+                        Text(activity.formattedDistance(from: loc))
+                            .font(.system(size: 12))
+                            .foregroundStyle(.gray)
+                    }
+                }
             }
-            
+
             Spacer()
-            
-            Image(systemName: "chevron.right")
-                .foregroundColor(.gray)
         }
         .padding(12)
         .background(
@@ -117,16 +179,159 @@ struct ActivityCardView: View {
                 .fill(Color.white)
                 .shadow(color: .gray.opacity(0.15), radius: 4, y: 2)
         )
-        .padding(.horizontal)
     }
 }
 
-#Preview {
+// MARK: - Route Map View
+struct RouteMapView: View {
+    let activity: Activity
+    let userLocation: CLLocationCoordinate2D
+
+    @State private var walkingRoute: MKRoute?
+    @State private var drivingRoute: MKRoute?
+    @State private var cameraPosition: MapCameraPosition = .automatic
+
+    // 도보·차량은 MKDirections 결과, 자전거는 도보 경로 거리 ÷ 15km/h로 추정
+    private func minutes(from route: MKRoute?) -> String? {
+        guard let route else { return nil }
+        return "\(Int((route.expectedTravelTime / 60).rounded(.up)))분"
+    }
+
+    private var cyclingMinutes: String? {
+        guard let route = walkingRoute else { return nil }
+        let mins = Int((route.distance / 1000 / 15 * 60).rounded(.up))  // 15 km/h 기준
+        return "\(mins)분"
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack(alignment: .bottom) {
+
+                // MARK: 지도 + 경로 선
+                Map(position: $cameraPosition) {
+                    UserAnnotation()
+
+                    Annotation(activity.title, coordinate: activity.coordinate) {
+                        Image(systemName: activity.icon)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(7)
+                            .background(Color.darkBlue)
+                            .clipShape(Circle())
+                            .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
+                    }
+
+                    // 도보 경로 (실선)
+                    if let route = walkingRoute {
+                        MapPolyline(route.polyline)
+                            .stroke(Color.darkBlue, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+                    }
+                }
+                .mapControls {
+                    MapCompass()
+                    MapScaleView()
+                }
+                .ignoresSafeArea(edges: .bottom)
+
+                // MARK: 하단 정보 카드
+                VStack(spacing: 12) {
+                    Text(activity.title)
+                        .font(.system(size: 18, weight: .semibold))
+
+                    HStack(spacing: 0) {
+                        travelCell(
+                            icon: "figure.walk",
+                            label: "도보",
+                            value: minutes(from: walkingRoute)
+                        )
+                        Divider().frame(height: 36)
+                        travelCell(
+                            icon: "bicycle",
+                            label: "자전거",
+                            value: cyclingMinutes
+                        )
+                        Divider().frame(height: 36)
+                        travelCell(
+                            icon: "car",
+                            label: "차량",
+                            value: minutes(from: drivingRoute)
+                        )
+                    }
+                }
+                .padding(.vertical, 20)
+                .padding(.horizontal, 16)
+                .frame(maxWidth: .infinity)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .padding(.horizontal, 16)
+                .padding(.bottom, 36)
+
+            } // ZStack end
+            .navigationTitle("경로")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .onAppear {
+            fitCamera()
+            calculateRoute(type: .walking)    { walkingRoute = $0 }
+            calculateRoute(type: .automobile) { drivingRoute = $0 }
+        }
+    }
+
+    // 이동수단별 셀
+    private func travelCell(icon: String, label: String, value: String?) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 18))
+                .foregroundStyle(Color.darkBlue)
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundStyle(.gray)
+            if let value {
+                Text(value)
+                    .font(.system(size: 14, weight: .semibold))
+            } else {
+                ProgressView().scaleEffect(0.7)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func fitCamera() {
+        let minLat = min(userLocation.latitude, activity.coordinate.latitude)
+        let maxLat = max(userLocation.latitude, activity.coordinate.latitude)
+        let minLon = min(userLocation.longitude, activity.coordinate.longitude)
+        let maxLon = max(userLocation.longitude, activity.coordinate.longitude)
+        let center = CLLocationCoordinate2D(
+            latitude: (minLat + maxLat) / 2,
+            longitude: (minLon + maxLon) / 2
+        )
+        let span = MKCoordinateSpan(
+            latitudeDelta: max((maxLat - minLat) * 1.6, 0.01),
+            longitudeDelta: max((maxLon - minLon) * 1.6, 0.01)
+        )
+        cameraPosition = .region(MKCoordinateRegion(center: center, span: span))
+    }
+
+    // transport 타입별로 MKDirections 요청 (같은 패턴, 타입만 다름)
+    private func calculateRoute(type: MKDirectionsTransportType, completion: @escaping (MKRoute) -> Void) {
+        let request = MKDirections.Request()
+        request.source = MKMapItem(placemark: MKPlacemark(coordinate: userLocation))
+        request.destination = MKMapItem(placemark: MKPlacemark(coordinate: activity.coordinate))
+        request.transportType = type
+        MKDirections(request: request).calculate { response, _ in
+            if let r = response?.routes.first {
+                completion(r)
+            }
+        }
+    }
+}
+
+#Preview("RecommendedView") {
     RecommendedView(
         selectedCategories: [
             ActivityCategory(title: "운동", icon: "dumbbell.fill", isSelected: true),
             ActivityCategory(title: "산책", icon: "figure.walk", isSelected: true)
         ],
-        minutes: 45
+        minutes: 60
     )
 }

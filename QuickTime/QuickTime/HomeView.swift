@@ -6,13 +6,18 @@
 //
 
 import SwiftUI
+import MapKit
 
 struct HomeView: View {
     //네비게이션에 쓸 변수
     @State private var navigateToRecommend = false
-    
-    //카테고리 담을 변수 
+
+    //카테고리 담을 변수
     @State var categories: [ActivityCategory] = []
+
+    // 위치 sheet
+    @State private var showLocationSheet = false
+    @State private var selectedLocation: CLLocationCoordinate2D?
     
     
     //선택된 카테고리 체크
@@ -28,21 +33,15 @@ struct HomeView: View {
     
     
 
+    // MARK: - Categories Data
     private func loadCategories() -> [ActivityCategory] {
-        guard let url = Bundle.main.url(forResource: "categories", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let result = try? JSONDecoder().decode([ActivityCategory].self, from: data)
-        else {
-            // JSON 파일이 없을 때 기본값
-            return [
-                .init(title: "운동", icon: "dumbbell.fill", isSelected: true),
-                .init(title: "산책", icon: "figure.walk", isSelected: true),
-                .init(title: "공부", icon: "book.closed", isSelected: false),
-                .init(title: "요가", icon: "figure.mind.and.body", isSelected: false),
-                .init(title: "휴식", icon: "cup.and.saucer", isSelected: false)
-            ]
-        }
-        return result
+        return [
+            .init(title: "운동", icon: "dumbbell.fill", isSelected: true),
+            .init(title: "산책", icon: "figure.walk", isSelected: true),
+            .init(title: "공부", icon: "book.closed", isSelected: false),
+            .init(title: "요가", icon: "figure.mind.and.body", isSelected: false),
+            .init(title: "휴식", icon: "cup.and.saucer", isSelected: false)
+        ]
     }
     
     @State private var text: String = ""
@@ -82,17 +81,17 @@ struct HomeView: View {
                 Text("남는 시간")
                     .font(.title)
                     .fontWeight(.light)
-                
+
                 Spacer().frame(height: 20)
-                
+
                 Button{
-                    //.Sheet 해서 위치 찾는 걸로 해야함
+                    showLocationSheet = true
                 }label: {
                     HStack(spacing: 12) {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 22, weight: .regular))
                             .foregroundColor(Color(.systemGray))
-                        
+
                         if text==""{
                             Text("지금 어디에 있나요?")
                                 .font(.system(size: 18, weight: .regular))
@@ -103,7 +102,7 @@ struct HomeView: View {
                                 .font(.system(size: 18, weight: .regular))
                                 .foregroundColor(.gray)
                         }
-                        
+
                         Spacer()
                     }
                     .padding(.horizontal, 20)
@@ -113,10 +112,10 @@ struct HomeView: View {
                             .fill(Color.gray.opacity(0.1))
                     )
                 }
-                
+
                 Spacer().frame(height: 50)
-                
-                
+
+
                 //원형 슬라이더
                 ZStack {
                     // 바깥 연한 원
@@ -162,7 +161,7 @@ struct HomeView: View {
                     // 가운데 텍스트
                     Text("\(Int(currentMinutes))분")
                         .font(.system(size: 56, weight: .bold))
-                        .foregroundColor(Color("DarkBlue"))
+                        .foregroundStyle(Color("DarkBlue"))
                 }
                 .frame(width: size, height: size) //여기 까지 원형슬라이더
                 
@@ -236,8 +235,17 @@ struct HomeView: View {
             .onAppear {
                 categories = loadCategories()
             }
+            .sheet(isPresented: $showLocationSheet) {
+                LocationMapView(
+                    userLocation: $selectedLocation,
+                    locationName: $text
+                )
+            }
             .navigationDestination(isPresented: $navigateToRecommend) {
-                RecommendedView(selectedCategories: selectedCategories,minutes: Int(currentMinutes)
+                RecommendedView(
+                    selectedCategories: selectedCategories,
+                    minutes: Int(currentMinutes),
+                    userLocation: selectedLocation
                 )
             }
         } //navigation end
@@ -267,7 +275,7 @@ struct HomeView: View {
                     Text(title)
                         .font(.system(size: 14, weight: .medium))
                 }
-                .foregroundColor(isSelected ? .white : .black)
+                .foregroundStyle(isSelected ? .white : .black)
                 .frame(width: 95, height: 48)
                 .background(
                     RoundedRectangle(cornerRadius: 25)
