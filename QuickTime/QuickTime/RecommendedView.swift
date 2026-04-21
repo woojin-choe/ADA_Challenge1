@@ -114,6 +114,33 @@ struct RecommendedView: View {
             center: center,
             span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
         ))) {
+            // 내 위치 핀
+            if let loc = userLocation {
+                Annotation("내 위치", coordinate: loc) {
+                    VStack(spacing: 2) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 28, height: 28)
+                                .shadow(color: .black.opacity(0.2), radius: 3, y: 1)
+                            Circle()
+                                .fill(Color.blue)
+                                .frame(width: 18, height: 18)
+                            Circle()
+                                .stroke(Color.white, lineWidth: 2)
+                                .frame(width: 18, height: 18)
+                        }
+                        Text("내 위치")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.blue)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            .background(Color.white.opacity(0.85))
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                    }
+                }
+            }
+
             // 활동 핀
             ForEach(recommendedActivities) { activity in
                 Annotation(activity.title, coordinate: activity.coordinate) {
